@@ -1,0 +1,5 @@
+# depslib dependency file v1.0
+1540238385 source:c:\users\anton\desktop\sessie_0\main.cpp
+	<iostream>
+	<opencv2/opencv.hpp>
+
