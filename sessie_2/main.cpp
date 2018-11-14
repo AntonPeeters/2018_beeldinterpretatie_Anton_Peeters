@@ -12,7 +12,7 @@ int alpha_slider = 168;
 const int alpha_slider_max2 = 255;
 int alpha_slider2 = 10;
 const int alpha_slider_max3 = 255;
-int alpha_slider3 = 150;
+int alpha_slider3 = 130;
 
 static void in_trackbar(int, void*)
 {
@@ -50,7 +50,7 @@ int main(int argc, const char** argv)
         return -1;
     }
 
-    /// Loading the gray image and showing it on screen
+    /// Loading the traffic sign image and showing it on screen
     Mat imageSign1= imread(image_sign1_loc);
     if(imageSign1.empty()) {
         cerr << "error while loading your images, check if you put the correct path.";
@@ -71,7 +71,7 @@ int main(int argc, const char** argv)
     imshow("Only traffic sign", RED_th);
     waitKey(0);
 
-    /// Merging the original image with the contoured image in order to get a "mask"
+    /// Merging the original image with the segmented image in order to get a "mask"
     Mat finaal(imageSign1.rows, imageSign1.cols, CV_8UC3);
     Mat PBLUE = channels[0] & RED_th;
     Mat PGREEN = channels[1] & RED_th;
@@ -154,19 +154,27 @@ int main(int argc, const char** argv)
     inRange(SAT, s1,255,s_dest);
 
     HUE = (h_dest1 | h_dest2) & s_dest;
-
+	
+	/// Displaying contours(blue) and convexHull(purple) to outline the traffic sign
     Mat canvas = imageSign1.clone();
     vector<vector<Point>> contours;
     findContours(HUE.clone(), contours, RETR_EXTERNAL, CHAIN_APPROX_NONE);
     vector<Point> grootste_blob = contours[0];
-    for(int i=0; i < contours.size(); i++) {
+    vector<Point> hull_blob = contours[0];
+    for(size_t i=0; i < contours.size(); i++) {
         if(contourArea(contours[i]) > contourArea(grootste_blob)){
             grootste_blob = contours[i];
         }
+        if(contourArea(contours[i]) > contourArea(hull_blob)){
+            convexHull(contours[i],hull_blob);
+        }
     }
     vector<vector<Point>> temp;
+    vector<vector<Point>> hulls;
     temp.push_back(grootste_blob);
+    hulls.push_back(hull_blob);
     drawContours(canvas, temp, -1, Scalar(255,255,0), 3);
+    drawContours(canvas, hulls, -1, Scalar(255,0,255), 3);
     imshow("verkeersbord",canvas);
     waitKey(0);
 
