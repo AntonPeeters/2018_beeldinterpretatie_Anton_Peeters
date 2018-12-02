@@ -161,7 +161,7 @@ int main(int argc, const char** argv)
             svm->predict(data_test, labels_svm);
 
             mask_knn.at<uchar>(r,c) = labels_knn.at<float>(0,0);
-            mask_bayes.at<uchar>(r,c) = labels_bayes.at<float>(0,0);
+            mask_bayes.at<uchar>(r,c) = labels_bayes.at<int>(0,0);
             mask_svm.at<uchar>(r,c) = labels_svm.at<float>(0,0);
         }
     }
