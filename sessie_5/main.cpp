@@ -6,7 +6,28 @@ using namespace std;
 using namespace cv;
 using namespace ml;
 
-Mat img;
+void applyingMask(Mat image, Mat mask) {
+    /// Merging the original image with the skin segmented image
+    vector<Mat> channels;
+    split(image,channels);
+    Mat BLUE = channels[0];
+    Mat GREEN = channels[1];
+    Mat RED = channels[2];
+
+    Mat finaal(image.rows, image.cols, CV_8UC3);
+    Mat PBLUE = channels[0] & mask;
+    Mat PGREEN = channels[1] & mask;
+    Mat PRED = channels[2] & mask;
+
+    Mat in[] = {PBLUE, PGREEN, PRED};
+    int from_to[] = {0,0,1,1,2,2};
+    mixChannels(in, 3, &finaal, 1, from_to, 3);
+
+    imshow("Masker", finaal);
+    waitKey(0);
+}
+
+
 
 static void onMouse( int event, int x, int y, int, void* param)
 {
@@ -22,11 +43,15 @@ static void onMouse( int event, int x, int y, int, void* param)
     if( event == EVENT_RBUTTONDOWN )
     {
         if(pixels->size() != 0)
+        {
             pixels->pop_back();
             cerr << "Removed last point \n";
+        }
+
     }
     if( event == EVENT_MBUTTONDOWN )
     {
+        cerr << "List of current selected pixels: ";
         for(int i = 0; i< pixels->size();i++)
         {
                 cerr << pixels->at(i) << " ";
@@ -57,7 +82,7 @@ int main(int argc, const char** argv)
     }
 
     /// Loading the image and showing it on screen
-    img= imread(image_image_loc);
+    Mat img = imread(image_image_loc);
     if(img.empty()) {
         cerr << "error while loading your images, check if you put the correct path.";
         return -1;
@@ -71,11 +96,13 @@ int main(int argc, const char** argv)
     imshow("image", image);
 
     /// Creating a vector of points for the user to select pixels on screen representing a strawberry
+    cerr << "select some strawberry pixels.\n\n";
+
     vector<Point> strawberry;
     setMouseCallback("image", onMouse, &strawberry );
     waitKey(0);
 
-    cerr << "select some negative examples.\n";
+    cerr << "\nselect some not-strawberry pixels.\n\n";
 
     /// Creating a vector of points for the user to select pixels on screen representing a not-strawberry
     vector<Point> background;
@@ -85,8 +112,6 @@ int main(int argc, const char** argv)
     Mat img_hsv = Mat(image.clone());
 
     /// Removing the Green channel from image because strawberries are typically red
-    //for (int i = 0; i < image.rows; i++) img_hsv.row(i).reshape(1, image.cols).col(1).setTo(Scalar(0));
-
     img_hsv -= Scalar(0,255,0);
 
     /// Adding some blur to cancel out mistakes
@@ -98,6 +123,7 @@ int main(int argc, const char** argv)
     Mat trainingDataForeground(strawberry.size(), 3, CV_32FC1);
     Mat labels_fg = Mat::ones(strawberry.size(), 1, CV_32SC1);
 
+    /// Setting up the training data (white for strawberry, black for background)
     for(int i = 0; i < strawberry.size(); i++)
     {
         Vec3b descriptor = img_hsv.at<Vec3b>(strawberry[i].y, strawberry[i].x);
@@ -171,5 +197,10 @@ int main(int argc, const char** argv)
     imshow("svm", mask_svm*255);
 
     waitKey(0);
+
+    applyingMask(image, mask_knn*255);
+    applyingMask(image, mask_bayes*255);
+    applyingMask(image, mask_svm*255);
+
     return 0;
 }
