@@ -113,6 +113,8 @@ int main(int argc, const char** argv)
 
     /// Removing the Green channel from image because strawberries are typically red
     img_hsv -= Scalar(0,255,0);
+    imshow("Green removed", img_hsv);
+    waitKey(0);
 
     /// Adding some blur to cancel out mistakes
     GaussianBlur(img_hsv, img_hsv, Size(5,5),0);
