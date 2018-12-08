@@ -10,7 +10,6 @@ String face_cascade_name = "haarcascade_frontalface_alt.xml";
 String betterface_cascade_name = "lbpcascade_frontalface_improved.xml";
 CascadeClassifier face_cascade;
 CascadeClassifier betterface_cascade;
-RNG rng(12345);
 
 int main(int argc, const char** argv)
 {
@@ -33,8 +32,7 @@ int main(int argc, const char** argv)
         return -1;
     }
 
-    /// Create a VideoCapture object and open the input file
-    /// If the input is the web camera, pass 0 instead of the video file name
+    /// Reading the video file
     VideoCapture cap(video_video_loc);
 
     /// Check if camera opened successfully
@@ -85,14 +83,10 @@ void detectAndDisplay(Mat frame)
     vector<int> faces_score;
     vector<int> betterfaces_score;
 
-    Mat frame_gray;
+    /// Detect faces using HAAR
+    face_cascade.detectMultiScale( frame, faces, faces_score, 1.1, 2, 0|CV_HAAR_SCALE_IMAGE, Size(30, 30) );
 
-    cvtColor( frame, frame_gray, CV_BGR2GRAY );
-    equalizeHist( frame_gray, frame_gray );
-
-    /// Detect faces
-    face_cascade.detectMultiScale( frame_gray, faces, faces_score, 1.1, 2, 0|CV_HAAR_SCALE_IMAGE, Size(30, 30) );
-
+    /// Using HAAR face model, will show as a circle
     for( size_t i = 0; i < faces.size(); i++ )
     {
         Point center( faces[i].x + faces[i].width*0.5, faces[i].y + faces[i].height*0.5 );
@@ -101,8 +95,10 @@ void detectAndDisplay(Mat frame)
         putText(frame, to_string(faces_score[i]), pt1, 1, 1, Scalar(0,0,255));
     }
 
-    betterface_cascade.detectMultiScale( frame_gray, betterfaces, betterfaces_score, 1.1, 2, 0 |CV_HAAR_SCALE_IMAGE, Size(30, 30) );
+    /// Detect faces using LBP
+    betterface_cascade.detectMultiScale( frame, betterfaces, betterfaces_score, 1.1, 2, 0 |CV_HAAR_SCALE_IMAGE, Size(30, 30) );
 
+    /// Using LBP face model, will show as a rectangle
     for( size_t i = 0; i < betterfaces.size(); i++ )
     {
         Point pt1(betterfaces[i].x + betterfaces[i].width, betterfaces[i].y + betterfaces[i].height);
@@ -110,6 +106,5 @@ void detectAndDisplay(Mat frame)
         putText(frame, to_string(betterfaces_score[i]), pt1, 1, 1, Scalar(0,0,255));
     }
 
-  /// Show what you got
   imshow("Jones", frame );
 }

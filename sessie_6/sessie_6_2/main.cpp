@@ -4,7 +4,7 @@
 using namespace std;
 using namespace cv;
 
-void detectAndDisplay(Mat frame);
+vector<Point> detectAndDisplay(Mat frame, vector<Point> path);
 
 HOGDescriptor hog;
 
@@ -29,15 +29,16 @@ int main(int argc, const char** argv)
         return -1;
     }
 
-    /// Create a VideoCapture object and open the input file
-    /// If the input is the web camera, pass 0 instead of the video file name
+    /// Open the input file
     VideoCapture cap(video_video_loc);
 
-    /// Check if camera opened successfully
+    /// Check if read successfully
     if(!cap.isOpened()){
         cout << "Error opening video file" << endl;
         return -1;
     }
+
+    vector<Point> path;
 
     while(1) {
 
@@ -50,7 +51,7 @@ int main(int argc, const char** argv)
             break;
 
         /// Display the resulting frame
-        detectAndDisplay(frame);
+        path = detectAndDisplay(frame, path);
 
         /// Press  ESC on keyboard to exit
         char c=(char)waitKey(25);
@@ -68,29 +69,37 @@ int main(int argc, const char** argv)
 
 }
 
-void detectAndDisplay(Mat frame)
+vector<Point> detectAndDisplay(Mat frame, vector<Point> path)
 {
-    vector<Rect> faces;
-    vector<int> faces_score;
+    vector<Rect> person;
+    vector<double> weights;
 
     Mat frame_gray;
 
     cvtColor( frame, frame_gray, CV_BGR2GRAY );
     equalizeHist( frame_gray, frame_gray );
 
-    /// Detect faces
+    /// Detect person
+    hog = HOGDescriptor();
     hog.setSVMDetector(HOGDescriptor::getDefaultPeopleDetector());
-    hog.detectMultiScale(frame, faces, faces_score);
-    //hog.detectMultiScale( frame_gray, faces, 1.1, 2, 0|CV_HAAR_SCALE_IMAGE, Size(30, 30) );
+    hog.detectMultiScale(frame_gray, person, weights);
 
-    for( size_t i = 0; i < faces.size(); i++ )
+    /// Drawing rectangle around person
+    for( size_t i = 0; i < person.size(); i++ )
     {
-        Point center( faces[i].x + faces[i].width*0.5, faces[i].y + faces[i].height*0.5 );
-        ellipse( frame, center, Size( faces[i].width*0.5, faces[i].height*0.5), 0, 0, 360, Scalar( 255, 0, 255 ), 2, 8, 0 );
-        Point pt1(faces[i].x, faces[i].y);
-        //putText(frame, to_string(faces_score[i]), pt1, 1, 1, Scalar(0,0,255));
+        Point center( person[i].x + person[i].width*0.5, person[i].y + person[i].height*0.5 );
+        path.push_back(center);
+        rectangle(frame, person[i], Scalar( 0, 255, 0 ), 2);
+        Point pt1(person[i].x, person[i].y);
+        putText(frame, to_string(weights[i]), pt1, 1, 1, Scalar(0,0,255));
     }
 
-  /// Show what you got
-  imshow("Hog", frame );
+    /// Drawing the path the person takes
+    for(size_t i = 0; i < path.size(); i++)
+    {
+        polylines(frame, path, false, Scalar(255,255,255), 4);
+    }
+
+    imshow("Hog", frame );
+    return path;
 }
