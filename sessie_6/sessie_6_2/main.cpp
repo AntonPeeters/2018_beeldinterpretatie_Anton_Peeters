@@ -76,6 +76,10 @@ vector<Point> detectAndDisplay(Mat frame, vector<Point> path)
 
     Mat frame_gray;
 
+    /// Make image bigger so it tracks better
+    resize(frame, frame, Size(), 2, 2);
+
+    /// Convert to gray
     cvtColor( frame, frame_gray, CV_BGR2GRAY );
     equalizeHist( frame_gray, frame_gray );
 
