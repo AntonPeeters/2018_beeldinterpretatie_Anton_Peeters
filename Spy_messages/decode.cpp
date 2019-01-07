@@ -5,8 +5,9 @@ using namespace std;
 using namespace cv;
 
 int bits = 4;
+void imageDecoding(Mat img1);
 
-///Converting a decimal into a binary number
+/// Converting a decimal into a binary number
 int intToBin(int decimal) {
     int binary = 0;
     int remainder, i = 1;
@@ -20,7 +21,7 @@ int intToBin(int decimal) {
     return binary;
 }
 
-///Converting a binary number into a decimal
+/// Converting a binary number into a decimal
 int binToInt(int binary) {
     int decimal = 0, i = 0, remainder;
     while (binary!=0)
@@ -33,11 +34,11 @@ int binToInt(int binary) {
     return decimal;
 }
 
-///extracting the last bits of the encrypted image which are from the hidden image
+/// Extracting the last bits of the encrypted image which are from the hidden image
 int extractBGR(int n) {
-    int macht = pow(10,8-bits);
-    int rest = n%macht;
-    return pow(10,bits)*rest;
+    int power = pow(10,8-bits);
+    int remainder = n%power;
+    return pow(10,bits)*remainder;
 }
 
 int main(int argc, const char** argv)
@@ -68,19 +69,28 @@ int main(int argc, const char** argv)
         return -1;
     }
 
-    ///Showing encrypted image on screen
+    /// Showing encrypted image on screen
     imshow("1", img1 );
     waitKey(0);
 
-    Mat canvas = Mat::zeros(Size(img1.size()), CV_8UC3); ///A black default image
-    int original_w, original_h; ///Width and height of the original hidden image
+    imageDecoding(img1);
 
-    ///Splitting the images into the BGR channels
+    return 0;
+}
+
+void imageDecoding(Mat img1){
+    /// A black default image
+    Mat canvas = Mat::zeros(Size(img1.size()), CV_8UC3);
+
+    /// Width and height of the hidden image
+    int original_w, original_h;
+
+    /// Splitting the images into the BGR channels
     vector<Mat> channels1, channels2;
     split(img1,channels1);
     split(canvas,channels2);
 
-    /// Triple for-loop that iterates over each pixel and its color channel
+    /// Triple for-loop that irritates over each pixel and its color channel
     for(int row = 0; row < img1.rows; row++) {
         for(int column = 0; column < img1.cols; column++) {
             for(int i = 0; i < 3; i++) {
@@ -91,22 +101,21 @@ int main(int argc, const char** argv)
                 channels2[i].at<uchar>(row, column) = pixelvalue;
             }
 
-            ///If-test to check if hidden image is smaller than the original, so we can crop the black bars
+            /// If-test to check if hidden image is smaller than the original, so we can crop the black bars if necessary
             if(channels2[0].at<uchar>(row, column)!=0 || channels2[1].at<uchar>(row, column)!=0 || channels2[2].at<uchar>(row, column)!=0) {
                 original_h = row+1;
                 original_w = column+1;
             }
         }
     }
-    ///Merging the channels into an image
+    /// Merging the channels into an image
     merge(channels2, canvas);
 
-    ///Cropping the image
-    Mat nieuw = canvas(Rect(0,0,original_w,original_h));
+    /// Cropping the image
+    Mat original = canvas(Rect(0,0,original_w,original_h));
 
-    ///Saving the image and showing it on screen
-    imwrite( "decrypted.jpg", nieuw);
-    imshow("Decrypted image", nieuw );
+    /// Saving the image and showing it on screen
+    imwrite("decrypted.jpg", original);
+    imshow("Decrypted image", original);
     waitKey(0);
-    return 0;
 }

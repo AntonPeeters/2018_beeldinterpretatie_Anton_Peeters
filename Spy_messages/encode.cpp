@@ -6,8 +6,9 @@ using namespace std;
 using namespace cv;
 
 int bits = 4;
+void imageEncoding(Mat img1, Mat img2);
 
-///Converting a decimal into a binary number
+/// Converting a decimal into a binary number
 string intToBin(int decimal) {
     int binary = 0;
     int remainder, i = 1;
@@ -19,16 +20,16 @@ string intToBin(int decimal) {
         i *= 10;
     }
 
-    ///Converting to string to make concatenating easier
+    /// Converting to string to make concatenating easier
     string bin = to_string(binary);
 
-    ///Adding zeros in front so it is easier to strip
+    /// Adding zeros in front so it is easier to strip
     while(bin.size()<8)
         bin = "0" + bin;
     return bin;
 }
 
-///Converting a binary number into a decimal
+/// Converting a binary number into a decimal
 int binToInt(int binary) {
     int decimal = 0, i = 0, remainder;
     while (binary!=0)
@@ -41,20 +42,14 @@ int binToInt(int binary) {
     return decimal;
 }
 
-///Merging the two bitgroups together
+/// Merging the two bitgroups together
 int mergeBGR(string n, string o) {
 
     ///Dropping the last "bits" bits
     n = n.substr(0,n.size()-(8-bits));
     o = o.substr(0,o.size()-bits);
 
-    /* Maybe try encrypting the image
-    for(int i = 0; i < o.size(); i++) {
-        o[i] = ((o[i]-'0') ^ (key[i]-'0')) + '0';
-    }
-    */
-
-    ///Adding them together
+    /// Adding them together
     string total = n+o;
     return stoi(total);
 }
@@ -84,43 +79,51 @@ int main(int argc, const char** argv)
 
     /// Loading the image and showing it on screen
     Mat img1 = imread(image_image1_loc);
-    Mat img2 = imread(image_image2_loc);
     if(img1.empty()) {
         cerr << "error while loading your image1, check if you put the correct path.";
         return -1;
     }
+    Mat img2 = imread(image_image2_loc);
     if(img2.empty()) {
         cerr << "error while loading your image2, check if you put the correct path.";
         return -1;
     }
+
+    /// Check if the image that will be hidden fits in the original image
     if(img2.rows > img1.rows || img2.cols > img1.cols) {
         cerr << "Image 1 size is lower than image 2 size!";
         return -1;
     }
 
-    ///Showing the images on screen
+    /// Showing the images on screen
     imshow("1", img1 );
     imshow("2", img2 );
     waitKey(0);
 
-    ///A black default image
+    imageEncoding(img1, img2);
+
+    return 0;
+}
+
+void imageEncoding(Mat img1, Mat img2) {
+    /// A black default image
     Mat canvas = Mat::zeros(Size(img1.size()), CV_8UC3);
 
-    ///Splitting the images into the BGR channels
+    /// Splitting the images into the BGR channels
     vector<Mat> channels1, channels2, channels3;
     split(img1,channels1);
     split(img2,channels2);
     split(canvas,channels3);
 
-    /// Triple for-loop that iterates over each pixel and its color channel
+    /// Triple for-loop that irritates over each pixel and its color channel
     for(int row = 0; row < img1.rows; row++) {
         for(int column = 0; column < img1.cols; column++) {
             for(int i = 0; i < 3; i++) {
                 int bgr;
                 string bgr1, bgr2;
                 bgr1 = intToBin(channels1[i].at<uchar>(row, column));
-                bgr2 = intToBin(0); ///Take black as default
-                if(row < img2.rows && column < img2.cols) ///If-test to check if still in range of second image
+                bgr2 = intToBin(0); /// Take black as default
+                if(row < img2.rows && column < img2.cols) /// If-test to check if still in range of second image
                     bgr2 = intToBin(channels2[i].at<uchar>(row, column));
                 bgr = mergeBGR(bgr1,bgr2);
                 int pixelvalue = binToInt(bgr);
@@ -129,12 +132,11 @@ int main(int argc, const char** argv)
         }
     }
 
-    ///Merging the channels into an image
+    /// Merging the channels into an image
     merge(channels3, canvas);
 
-    ///Saving the image and showing it on screen
-    imwrite( "encrypted.png", canvas); ///important to save as an .png because .jpg alters the pixelvalues
+    /// Saving the image and showing it on screen
+    imwrite( "encrypted.png", canvas); /// i\Important to save as an ".png" because ".jpg" alters the pixelvalues
     imshow("Encrypted Image", canvas );
     waitKey(0);
-    return 0;
 }
