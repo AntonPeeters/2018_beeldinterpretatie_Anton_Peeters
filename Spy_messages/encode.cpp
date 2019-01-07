@@ -8,7 +8,7 @@ using namespace cv;
 int bits = 4;
 
 ///Converting a decimal into a binary number
-int intToBin(int decimal) {
+string intToBin(int decimal) {
     int binary = 0;
     int remainder, i = 1;
     while (decimal!=0)
@@ -18,7 +18,14 @@ int intToBin(int decimal) {
         binary += remainder*i;
         i *= 10;
     }
-    return binary;
+
+    ///Converting to string to make concatenating easier
+    string bin = to_string(binary);
+
+    ///Adding zeros in front so it is easier to strip
+    while(bin.size()<8)
+        bin = "0" + bin;
+    return bin;
 }
 
 ///Converting a binary number into a decimal
@@ -35,22 +42,21 @@ int binToInt(int binary) {
 }
 
 ///Merging the two bitgroups together
-int mergeBGR(int n, int o) {
-    ///Converting to string to make concatenating easier
-    string s = to_string(n);
-    string t = to_string(o);
+int mergeBGR(string n, string o) {
 
     ///Dropping the last "bits" bits
-    s = s.substr(0,s.size()-bits);
-    t = t.substr(0,t.size()-bits);
+    n = n.substr(0,n.size()-(8-bits));
+    o = o.substr(0,o.size()-bits);
 
-    ///Adding zeros in front of the second bitgroup so the alignment is still correct
-    while(t.size()<4)
-        t="0"+t;
+    /* Maybe try encrypting the image
+    for(int i = 0; i < o.size(); i++) {
+        o[i] = ((o[i]-'0') ^ (key[i]-'0')) + '0';
+    }
+    */
 
     ///Adding them together
-    string test = s+t;
-    return stoi(test);
+    string total = n+o;
+    return stoi(total);
 }
 
 int main(int argc, const char** argv)
@@ -106,11 +112,12 @@ int main(int argc, const char** argv)
     split(img2,channels2);
     split(canvas,channels3);
 
-    /// Triple for-loop that irritates over each pixel and its color channel
+    /// Triple for-loop that iterates over each pixel and its color channel
     for(int row = 0; row < img1.rows; row++) {
         for(int column = 0; column < img1.cols; column++) {
             for(int i = 0; i < 3; i++) {
-                int bgr, bgr1, bgr2;
+                int bgr;
+                string bgr1, bgr2;
                 bgr1 = intToBin(channels1[i].at<uchar>(row, column));
                 bgr2 = intToBin(0); ///Take black as default
                 if(row < img2.rows && column < img2.cols) ///If-test to check if still in range of second image
@@ -127,7 +134,7 @@ int main(int argc, const char** argv)
 
     ///Saving the image and showing it on screen
     imwrite( "encrypted.png", canvas); ///important to save as an .png because .jpg alters the pixelvalues
-    imshow("Jones", canvas );
+    imshow("Encrypted Image", canvas );
     waitKey(0);
     return 0;
 }

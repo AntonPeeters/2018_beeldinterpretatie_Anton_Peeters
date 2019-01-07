@@ -80,7 +80,7 @@ int main(int argc, const char** argv)
     split(img1,channels1);
     split(canvas,channels2);
 
-    /// Triple for-loop that irritates over each pixel and its color channel
+    /// Triple for-loop that iterates over each pixel and its color channel
     for(int row = 0; row < img1.rows; row++) {
         for(int column = 0; column < img1.cols; column++) {
             for(int i = 0; i < 3; i++) {
@@ -106,7 +106,7 @@ int main(int argc, const char** argv)
 
     ///Saving the image and showing it on screen
     imwrite( "decrypted.jpg", nieuw);
-    imshow("Jones", nieuw );
+    imshow("Decrypted image", nieuw );
     waitKey(0);
     return 0;
 }
