@@ -158,7 +158,7 @@ void textDecoding(Mat img1) {
 	for(int row=0; row < img1.rows; row++) {
 		for(int column=0; column < img1.cols; column++) {
 			for(int i=0; i < 3; i++) {
-				Vec3b pixel = img1.at<Vec3b>(Point(row,column));
+				Vec3b pixel = img1.at<Vec3b>(row,column);
 
 				/// Test if bit is set
 				if(isBitOne(pixel.val[i],0,7-bit_count))

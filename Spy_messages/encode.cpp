@@ -186,7 +186,7 @@ void textEncoding(Mat img1, ifstream& file) {
 	for(int row=0; row < img1.rows; row++) {
 		for(int column=0; column < img1.cols; column++) {
 			for(int i=0; i < 3; i++) {
-				Vec3b pixel = img1.at<Vec3b>(Point(row,column));
+				Vec3b pixel = img1.at<Vec3b>(row,column);
 
                 /// If 1 -> set LSB to 1
                 /// If 0 -> set LSB to 0
@@ -195,7 +195,7 @@ void textEncoding(Mat img1, ifstream& file) {
 				else
 					pixel.val[i] &= 0;
 
-				img1.at<Vec3b>(Point(row,column)) = pixel;
+				img1.at<Vec3b>(row,column) = pixel;
 
 				/// Next bit
 				bit_count++;
