@@ -6,7 +6,7 @@
 using namespace std;
 using namespace cv;
 
-string key = "01100110";
+string key = "10110011";
 int bits;
 void imageEncoding(Mat img1, Mat img2);
 void textEncoding(Mat img1, ifstream& file);
@@ -57,9 +57,9 @@ int mergeBGR(string n, string o) {
     return stoi(total);
 }
 
-bool isBitSet(char ch, int pos) {
-	ch = ch >> pos;
-	ch = ch ^ key[pos];
+bool isBitOne(char ch, int pos) {
+	ch = ch >> pos; /// Shifts to the right
+	ch = ch ^ key[pos]; /// Encrypting the letters with a key
 	if(ch & 1)
 		return true;
 	return false;
@@ -70,9 +70,9 @@ int main(int argc, const char** argv)
     /// Adding a little help option and command line parser input
     CommandLineParser parser(argc, argv,
         "{ help h usage ? || show this message }"
-        "{ bits b || (required) amount of bits for image storage}"
+        "{ bits b|| (required) amount of bits for hidden image storage}"
         "{ image1 i1|| (required) path to image }"
-        "{ image_text it|| (required) path to image or textfile }"
+        "{ image_text it|| (required) path to image or text file }"
     );
 
     if (parser.has("help")){
@@ -81,7 +81,7 @@ int main(int argc, const char** argv)
     }
 
     /// Collect data from arguments
-    bits = parser.get<int>("bits");
+    bits = 8-parser.get<int>("bits");
     if(bits < 1 || bits > 7) {
         cerr << "error while reading your bits, check if between 1 and 7.";
         parser.printMessage();
@@ -134,6 +134,10 @@ int main(int argc, const char** argv)
     return 0;
 }
 
+/// We will hide an image into another image by taking the x amount of MSB (given by the user) of the hidden image,
+/// and storing them in the original image as LSB. This way the original image will not alter as much given it are only the LSB that are changed.
+/// A higher amount of bits will result in a better quality hidden image, at the cost of being less hidden in the original image.
+/// A lower amount of bits will result in a lower quality hidden image, but it will be hidden better.
 void imageEncoding(Mat img1, Mat img2) {
     /// A black default image
     Mat canvas = Mat::zeros(Size(img1.size()), CV_8UC3);
@@ -165,44 +169,39 @@ void imageEncoding(Mat img1, Mat img2) {
     merge(channels3, canvas);
 
     /// Saving the image and showing it on screen
-    imwrite( "encrypted.png", canvas); /// i\Important to save as an ".png" because ".jpg" alters the pixelvalues
+    imwrite( "encrypted.png", canvas); /// Important to save as an ".png" because ".jpg" alters the pixelvalues
     imshow("Encrypted Image", canvas );
     waitKey(0);
 }
 
+/// We hide text into an image by taking one char (8 bits), and storing them in the LSB of an image pixel (BGR).
+/// If we do it this way the change of the color of pixel will not be noticeable.
 void textEncoding(Mat img1, ifstream& file) {
 	char ch;
 	file.get(ch);
 	int bit_count = 0; /// The bit we are working on.
-	bool last_null_char = false; /// Check if file ended
+	bool file_end = false; /// Check if file ended
 	bool encoded = false; /// Check if encoded successfully
 
-	/*
-	To hide text into images. We are taking one char (8 bits) and each of the 8 bits are stored
-	in the Least Significant Bits (LSB) of the pixel values (Red,Green,Blue).
-	We are manipulating bits in such way that changing LSB of the pixel values will not make a huge difference.
-	The image will still look similiar to the naked eye.
-	*/
-
 	for(int row=0; row < img1.rows; row++) {
-		for(int col=0; col < img1.cols; col++) {
-			for(int color=0; color < 3; color++) {
-				Vec3b pixel = img1.at<Vec3b>(Point(row,col));
+		for(int column=0; column < img1.cols; column++) {
+			for(int i=0; i < 3; i++) {
+				Vec3b pixel = img1.at<Vec3b>(Point(row,column));
 
                 /// If 1 -> set LSB to 1
                 /// If 0 -> set LSB to 0
-				if(isBitSet(ch,7-bit_count))
-					pixel.val[color] |= 1;
+				if(isBitOne(ch,7-bit_count))
+					pixel.val[i] |= 1;
 				else
-					pixel.val[color] &= ~1;
+					pixel.val[i] &= 0;
 
-				img1.at<Vec3b>(Point(row,col)) = pixel;
+				img1.at<Vec3b>(Point(row,column)) = pixel;
 
 				/// Next bit
 				bit_count++;
 
 				/// Our message is encoded
-				if(last_null_char && bit_count == 8) {
+				if(file_end && bit_count == 8) {
 					encoded  = true;
 					goto OUT;
 				}
@@ -215,11 +214,10 @@ void textEncoding(Mat img1, ifstream& file) {
 
 					/// When end of file
 					if(file.eof()) {
-						last_null_char = true;
+						file_end = true;
 						ch = '\0';
 					}
 				}
-
 			}
 		}
 	}
@@ -229,6 +227,7 @@ void textEncoding(Mat img1, ifstream& file) {
 		cerr << "Message too big. Try with larger image.\n";
 		exit(-1);
 	}
+
 	/// Saving the image and showing it on screen
     imwrite("encryptedText.png",img1);
     imshow("Encrypted Text", img1 );

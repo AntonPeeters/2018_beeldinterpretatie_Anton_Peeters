@@ -4,7 +4,7 @@
 using namespace std;
 using namespace cv;
 
-string key = "01100110";
+string key = "10110011";
 int bits;
 void imageDecoding(Mat img1);
 void textDecoding(Mat img1);
@@ -43,9 +43,9 @@ int extractBGR(int n) {
     return pow(10,bits)*remainder;
 }
 
-bool isBitSet(char ch, int pos, int keypos) {
-	ch = ch >> pos;
-	ch = ch ^ key[keypos];
+bool isBitOne(char ch, int pos, int keypos) {
+	ch = ch >> pos; /// Shifts to the right
+	ch = ch ^ key[keypos]; /// Encrypting the letters with a key
 	if(ch & 1)
 		return true;
 	return false;
@@ -56,9 +56,9 @@ int main(int argc, const char** argv)
     /// Adding a little help option and command line parser input
     CommandLineParser parser(argc, argv,
         "{ help h usage ? || show this message }"
-        "{ bits b || (required) amount of bits for image storage}"
+        "{ bits b|| (required) amount of bits for hidden image storage}"
         "{ image1 i1|| (required) path to image }"
-        "{ image_text it || (required) specify if image or text was hidden}"
+        "{ image_text it|| (required) specify if image or text was hidden}"
     );
 
     if (parser.has("help")){
@@ -67,7 +67,7 @@ int main(int argc, const char** argv)
     }
 
     /// Collect data from arguments
-    bits = parser.get<int>("bits");
+    bits = 8-parser.get<int>("bits");
     if(bits < 1 || bits > 7) {
         cerr << "error while reading your bits, check if between 1 and 7.";
         parser.printMessage();
@@ -104,6 +104,9 @@ int main(int argc, const char** argv)
     return 0;
 }
 
+/// We extract the hidden image by taking the x amount of LSB (given by the user) of the encrypted image,
+/// and making them the MSB again of a new image, the LSB will be filled up with zeros.
+/// The quality of the extracted image will always be lower than the original hidden image.
 void imageDecoding(Mat img1){
     /// A black default image
     Mat canvas = Mat::zeros(Size(img1.size()), CV_8UC3);
@@ -146,18 +149,19 @@ void imageDecoding(Mat img1){
     waitKey(0);
 }
 
+/// We are decrypting the message by taking the LSB of each pixel so we can recreate the original message.
 void textDecoding(Mat img1) {
 	char ch=0;
 	int bit_count = 0; /// The bit we are working on.
 
     /// Triple for-loop that irritates over each pixel and its color channel
 	for(int row=0; row < img1.rows; row++) {
-		for(int col=0; col < img1.cols; col++) {
-			for(int color=0; color < 3; color++) {
-				Vec3b pixel = img1.at<Vec3b>(Point(row,col));
+		for(int column=0; column < img1.cols; column++) {
+			for(int i=0; i < 3; i++) {
+				Vec3b pixel = img1.at<Vec3b>(Point(row,column));
 
 				/// Test if bit is set
-				if(isBitSet(pixel.val[color],0,bit_count))
+				if(isBitOne(pixel.val[i],0,7-bit_count))
 					ch |= 1;
 
 				/// Next bit
@@ -177,7 +181,6 @@ void textDecoding(Mat img1) {
 				else {
 					ch = ch << 1;
 				}
-
 			}
 		}
 	}
