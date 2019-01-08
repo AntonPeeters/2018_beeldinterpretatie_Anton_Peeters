@@ -4,8 +4,10 @@
 using namespace std;
 using namespace cv;
 
-int bits = 4;
+string key = "01100110";
+int bits;
 void imageDecoding(Mat img1);
+void textDecoding(Mat img1);
 
 /// Converting a decimal into a binary number
 int intToBin(int decimal) {
@@ -41,12 +43,22 @@ int extractBGR(int n) {
     return pow(10,bits)*remainder;
 }
 
+bool isBitSet(char ch, int pos, int keypos) {
+	ch = ch >> pos;
+	ch = ch ^ key[keypos];
+	if(ch & 1)
+		return true;
+	return false;
+}
+
 int main(int argc, const char** argv)
 {
     /// Adding a little help option and command line parser input
     CommandLineParser parser(argc, argv,
         "{ help h usage ? || show this message }"
+        "{ bits b || (required) amount of bits for image storage}"
         "{ image1 i1|| (required) path to image }"
+        "{ image_text it || (required) specify if image or text was hidden}"
     );
 
     if (parser.has("help")){
@@ -55,6 +67,12 @@ int main(int argc, const char** argv)
     }
 
     /// Collect data from arguments
+    bits = parser.get<int>("bits");
+    if(bits < 1 || bits > 7) {
+        cerr << "error while reading your bits, check if between 1 and 7.";
+        parser.printMessage();
+        return -1;
+    }
     string image_image1_loc(parser.get<string>("image1"));
     if (image_image1_loc.empty()){
         cerr << "error while reading your image, check if you put the correct path.";
@@ -73,7 +91,15 @@ int main(int argc, const char** argv)
     imshow("1", img1 );
     waitKey(0);
 
-    imageDecoding(img1);
+    if(parser.get<string>("image_text") == "image")
+        imageDecoding(img1);
+    else if(parser.get<string>("image_text") == "text")
+        textDecoding(img1);
+    else {
+        cerr << "Put 'image' for an image or 'text' for a text file.";
+        parser.printMessage();
+        return -1;
+    }
 
     return 0;
 }
@@ -118,4 +144,41 @@ void imageDecoding(Mat img1){
     imwrite("decrypted.jpg", original);
     imshow("Decrypted image", original);
     waitKey(0);
+}
+
+void textDecoding(Mat img1) {
+	char ch=0;
+	int bit_count = 0; /// The bit we are working on.
+
+    /// Triple for-loop that irritates over each pixel and its color channel
+	for(int row=0; row < img1.rows; row++) {
+		for(int col=0; col < img1.cols; col++) {
+			for(int color=0; color < 3; color++) {
+				Vec3b pixel = img1.at<Vec3b>(Point(row,col));
+
+				/// Test if bit is set
+				if(isBitSet(pixel.val[color],0,bit_count))
+					ch |= 1;
+
+				/// Next bit
+				bit_count++;
+
+				/// End of one char
+				if(bit_count == 8) {
+
+					/// End of the message
+					if(ch == '\0')
+						return;
+
+					bit_count = 0;
+					cout <<ch;
+					ch = 0;
+				}
+				else {
+					ch = ch << 1;
+				}
+
+			}
+		}
+	}
 }

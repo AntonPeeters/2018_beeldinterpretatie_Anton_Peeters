@@ -1,12 +1,15 @@
 #include <iostream>
+#include <fstream>
 #include <opencv2/opencv.hpp>
 #include <string>
 
 using namespace std;
 using namespace cv;
 
-int bits = 4;
+string key = "01100110";
+int bits;
 void imageEncoding(Mat img1, Mat img2);
+void textEncoding(Mat img1, ifstream& file);
 
 /// Converting a decimal into a binary number
 string intToBin(int decimal) {
@@ -54,13 +57,22 @@ int mergeBGR(string n, string o) {
     return stoi(total);
 }
 
+bool isBitSet(char ch, int pos) {
+	ch = ch >> pos;
+	ch = ch ^ key[pos];
+	if(ch & 1)
+		return true;
+	return false;
+}
+
 int main(int argc, const char** argv)
 {
     /// Adding a little help option and command line parser input
     CommandLineParser parser(argc, argv,
         "{ help h usage ? || show this message }"
+        "{ bits b || (required) amount of bits for image storage}"
         "{ image1 i1|| (required) path to image }"
-        "{ image2 i2|| (required) path to image }"
+        "{ image_text it|| (required) path to image or textfile }"
     );
 
     if (parser.has("help")){
@@ -69,9 +81,15 @@ int main(int argc, const char** argv)
     }
 
     /// Collect data from arguments
+    bits = parser.get<int>("bits");
+    if(bits < 1 || bits > 7) {
+        cerr << "error while reading your bits, check if between 1 and 7.";
+        parser.printMessage();
+        return -1;
+    }
     string image_image1_loc(parser.get<string>("image1"));
-    string image_image2_loc(parser.get<string>("image2"));
-    if (image_image1_loc.empty() || image_image2_loc.empty()){
+    string image_image_text_loc(parser.get<string>("image_text"));
+    if (image_image1_loc.empty() || image_image_text_loc.empty()){
         cerr << "error while reading your images, check if you put the correct path.";
         parser.printMessage();
         return -1;
@@ -79,28 +97,39 @@ int main(int argc, const char** argv)
 
     /// Loading the image and showing it on screen
     Mat img1 = imread(image_image1_loc);
-    if(img1.empty()) {
-        cerr << "error while loading your image1, check if you put the correct path.";
-        return -1;
-    }
-    Mat img2 = imread(image_image2_loc);
+        if(img1.empty()) {
+            cerr << "error while loading your image, check if you put the correct path.";
+            return -1;
+        }
+    Mat img2 = imread(image_image_text_loc);
     if(img2.empty()) {
-        cerr << "error while loading your image2, check if you put the correct path.";
-        return -1;
+        ifstream file(image_image_text_loc);
+            if(!file.is_open()) {
+                cerr << "error while loading your image/text file, check if you put the correct path.";
+            return -1;
+            }
+            else {
+                /// Showing the images on screen
+                imshow("1", img1 );
+                waitKey(0);
+
+                textEncoding(img1, file);
+            }
     }
+    else {
+        /// Check if the image that will be hidden fits in the original image
+        if(img2.rows > img1.rows || img2.cols > img1.cols) {
+            cerr << "Image 1 size is lower than image 2 size!";
+            return -1;
+        }
 
-    /// Check if the image that will be hidden fits in the original image
-    if(img2.rows > img1.rows || img2.cols > img1.cols) {
-        cerr << "Image 1 size is lower than image 2 size!";
-        return -1;
+        /// Showing the images on screen
+        imshow("1", img1 );
+        imshow("2", img2 );
+        waitKey(0);
+
+        imageEncoding(img1, img2);
     }
-
-    /// Showing the images on screen
-    imshow("1", img1 );
-    imshow("2", img2 );
-    waitKey(0);
-
-    imageEncoding(img1, img2);
 
     return 0;
 }
@@ -138,5 +167,70 @@ void imageEncoding(Mat img1, Mat img2) {
     /// Saving the image and showing it on screen
     imwrite( "encrypted.png", canvas); /// i\Important to save as an ".png" because ".jpg" alters the pixelvalues
     imshow("Encrypted Image", canvas );
+    waitKey(0);
+}
+
+void textEncoding(Mat img1, ifstream& file) {
+	char ch;
+	file.get(ch);
+	int bit_count = 0; /// The bit we are working on.
+	bool last_null_char = false; /// Check if file ended
+	bool encoded = false; /// Check if encoded successfully
+
+	/*
+	To hide text into images. We are taking one char (8 bits) and each of the 8 bits are stored
+	in the Least Significant Bits (LSB) of the pixel values (Red,Green,Blue).
+	We are manipulating bits in such way that changing LSB of the pixel values will not make a huge difference.
+	The image will still look similiar to the naked eye.
+	*/
+
+	for(int row=0; row < img1.rows; row++) {
+		for(int col=0; col < img1.cols; col++) {
+			for(int color=0; color < 3; color++) {
+				Vec3b pixel = img1.at<Vec3b>(Point(row,col));
+
+                /// If 1 -> set LSB to 1
+                /// If 0 -> set LSB to 0
+				if(isBitSet(ch,7-bit_count))
+					pixel.val[color] |= 1;
+				else
+					pixel.val[color] &= ~1;
+
+				img1.at<Vec3b>(Point(row,col)) = pixel;
+
+				/// Next bit
+				bit_count++;
+
+				/// Our message is encoded
+				if(last_null_char && bit_count == 8) {
+					encoded  = true;
+					goto OUT;
+				}
+
+				/// End of one char
+				if(bit_count == 8) {
+					bit_count = 0;
+					cout<<ch;
+					file.get(ch);
+
+					/// When end of file
+					if(file.eof()) {
+						last_null_char = true;
+						ch = '\0';
+					}
+				}
+
+			}
+		}
+	}
+    OUT:;
+
+	if(!encoded) {
+		cerr << "Message too big. Try with larger image.\n";
+		exit(-1);
+	}
+	/// Saving the image and showing it on screen
+    imwrite("encryptedText.png",img1);
+    imshow("Encrypted Text", img1 );
     waitKey(0);
 }
