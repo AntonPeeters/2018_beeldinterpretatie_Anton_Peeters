@@ -119,7 +119,7 @@ void imageDecoding(Mat img1){
     split(img1,channels1);
     split(canvas,channels2);
 
-    /// Triple for-loop that irritates over each pixel and its color channel
+    /// Triple for-loop that iterates over each pixel and its color channel
     for(int row = 0; row < img1.rows; row++) {
         for(int column = 0; column < img1.cols; column++) {
             for(int i = 0; i < 3; i++) {
@@ -154,7 +154,7 @@ void textDecoding(Mat img1) {
 	char ch=0;
 	int bit_count = 0; /// The bit we are working on.
 
-    /// Triple for-loop that irritates over each pixel and its color channel
+    /// Triple for-loop that iterates over each pixel and its color channel
 	for(int row=0; row < img1.rows; row++) {
 		for(int column=0; column < img1.cols; column++) {
 			for(int i=0; i < 3; i++) {

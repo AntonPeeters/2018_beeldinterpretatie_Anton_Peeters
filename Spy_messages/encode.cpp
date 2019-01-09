@@ -148,7 +148,7 @@ void imageEncoding(Mat img1, Mat img2) {
     split(img2,channels2);
     split(canvas,channels3);
 
-    /// Triple for-loop that irritates over each pixel and its color channel
+    /// Triple for-loop that iterates over each pixel and its color channel
     for(int row = 0; row < img1.rows; row++) {
         for(int column = 0; column < img1.cols; column++) {
             for(int i = 0; i < 3; i++) {
@@ -183,6 +183,7 @@ void textEncoding(Mat img1, ifstream& file) {
 	bool file_end = false; /// Check if file ended
 	bool encoded = false; /// Check if encoded successfully
 
+	/// Triple for-loop that iterates over each pixel and its color channel
 	for(int row=0; row < img1.rows; row++) {
 		for(int column=0; column < img1.cols; column++) {
 			for(int i=0; i < 3; i++) {
